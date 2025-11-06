@@ -10,9 +10,21 @@ public class ConcursoMapping : IEntityTypeConfiguration<Concurso>
     {
         builder.ToTable("Concursos");
         builder.HasKey(t => t.Id);
+
         builder.Property(t => t.Nome).HasColumnType("varchar(100)").IsRequired();
         builder.Property(t => t.Descricao).HasColumnType("varchar(255)").IsRequired();
-        builder.Property(t=>t.CategoriaId).IsRequired();
-        builder.Property(t=>t.NivelEscolaridadeId).IsRequired();    
+        builder.Property(t => t.CategoriaId).IsRequired();
+        builder.Property(t => t.NivelEscolaridadeId).IsRequired();
+
+        // Relacionamentos (Restrict)
+        builder.HasOne(t => t.Categoria)
+               .WithMany(c => c.Concursos)
+               .HasForeignKey(t => t.CategoriaId)
+               .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(t => t.NivelEscolaridade)
+               .WithMany(n => n.Concursos)
+               .HasForeignKey(t => t.NivelEscolaridadeId)
+               .OnDelete(DeleteBehavior.Restrict);
     }
 }
