@@ -33,6 +33,7 @@ public class CategoriaController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Create([FromBody] CategoriaViewModel vm)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -41,6 +42,7 @@ public class CategoriaController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Update(Guid id, [FromBody] CategoriaViewModel vm)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -50,6 +52,7 @@ public class CategoriaController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Delete(Guid id)
     {
         var ok = await _service.DeleteAsync(id);

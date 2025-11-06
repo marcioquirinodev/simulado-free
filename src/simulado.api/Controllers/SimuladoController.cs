@@ -35,6 +35,7 @@ public class SimuladoController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Create([FromBody] SimuladoViewModel vm)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -43,6 +44,7 @@ public class SimuladoController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Update(Guid id, [FromBody] SimuladoViewModel vm)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -52,6 +54,7 @@ public class SimuladoController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Delete(Guid id)
     {
         var ok = await _service.DeleteAsync(id);

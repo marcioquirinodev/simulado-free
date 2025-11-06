@@ -68,7 +68,7 @@ public class UsuarioController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await _usuarioService.DeleteAsync(id);

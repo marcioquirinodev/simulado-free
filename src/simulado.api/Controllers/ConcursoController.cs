@@ -35,6 +35,7 @@ public class ConcursoController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Create([FromBody] ConcursoViewModel vm)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -43,6 +44,7 @@ public class ConcursoController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Update(Guid id, [FromBody] ConcursoViewModel vm)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -52,6 +54,7 @@ public class ConcursoController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Delete(Guid id)
     {
         var ok = await _service.DeleteAsync(id);

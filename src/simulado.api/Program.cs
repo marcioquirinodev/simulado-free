@@ -9,6 +9,7 @@ using simulado.data.Context;
 using simulado.busisness.Services;
 using simulado.shared.Entidades;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,7 +61,7 @@ builder.Services.AddScoped<IQuestaoService, QuestaoService>();
 builder.Services.AddScoped<IRespostaUsuarioService, RespostaUsuarioService>();
 builder.Services.AddScoped<ISessaoSimuladoService, SessaoSimuladoService>();
 
-// Swagger / OpenAPI
+// Swagger / OpenAPI registration
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -76,6 +77,62 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+// PROTEÇÃO DO SWAGGER (Basic Auth) — aqui protegemos apenas em Development
+if (app.Environment.IsDevelopment())
+{
+    // ler credenciais de configuração (ou use variáveis de ambiente)
+    var swaggerUser = app.Configuration.GetValue<string>("SwaggerAuth:Username") ?? "swagger";
+    var swaggerPass = app.Configuration.GetValue<string>("SwaggerAuth:Password") ?? "troque-essa-senha";
+
+    // middleware que exige Basic Auth para qualquer rota que comece com /swagger
+    app.Use(async (context, next) =>
+    {
+        if (context.Request.Path.StartsWithSegments("/swagger", StringComparison.OrdinalIgnoreCase))
+        {
+            var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Response.Headers["WWW-Authenticate"] = "Basic realm=\"Swagger\"";
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsync("Unauthorized");
+                return;
+            }
+
+            var encoded = authHeader.Substring("Basic ".Length).Trim();
+            string decoded;
+            try
+            {
+                decoded = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
+            }
+            catch
+            {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await context.Response.WriteAsync("Invalid Authorization header");
+                return;
+            }
+
+            var parts = decoded.Split(':', 2);
+            if (parts.Length != 2 || parts[0] != swaggerUser || parts[1] != swaggerPass)
+            {
+                context.Response.Headers["WWW-Authenticate"] = "Basic realm=\"Swagger\"";
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsync("Unauthorized");
+                return;
+            }
+        }
+
+        await next();
+    });
+
+    // depois do middleware, expomos o swagger normalmente
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Simulado API v1");
+        c.RoutePrefix = "swagger";
+    });
+}
 
 // Seed roles, NivelEscolaridade e usuário administrador no startup
 using (var scope = app.Services.CreateScope())
