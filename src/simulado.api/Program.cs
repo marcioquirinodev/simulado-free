@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using pandora.app.Configuration;
 using simulado.data.Context;
+using simulado.busisness.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,20 @@ builder.Services.AddCustomIdentity();
 
 // controllers
 builder.Services.AddControllers();
+
+// register application services (Dependency Injection)
+builder.Services.AddScoped<ICategoriaService, CategoriaService>();
+builder.Services.AddScoped<IConcursoService, ConcursoService>();
+// registrar Desempenho service
+builder.Services.AddScoped<IDesempenhoService, DesempenhoService>();
+// registrar Disciplina service
+builder.Services.AddScoped<IDisciplinaService, DisciplinaService>();
+// registrar NivelEscolaridade service
+builder.Services.AddScoped<INivelEscolaridadeService, NivelEscolaridadeService>();
+// registrar Questao service
+builder.Services.AddScoped<IQuestaoService, QuestaoService>();
+// registrar SessaoSimulado service
+builder.Services.AddScoped<ISessaoSimuladoService, SessaoSimuladoService>();
 
 // Swagger / OpenAPI (registrar sempre, ativar apenas em Development)
 builder.Services.AddEndpointsApiExplorer();
