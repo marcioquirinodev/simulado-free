@@ -8,7 +8,7 @@ public static class IdentityConfig
 {
     public static IServiceCollection AddCustomIdentity(this IServiceCollection services)
     {
-        services.AddIdentity<Usuario, IdentityRole>(options =>
+        services.AddIdentity<Usuario, IdentityRole<Guid>>(options =>
         {
             options.SignIn.RequireConfirmedAccount = true;
 

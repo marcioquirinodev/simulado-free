@@ -1,6 +1,6 @@
 ﻿namespace simulado.shared.Entidades;
 
-public class SessaoSimulado :  Entidade
+public class SessaoSimulado : Entidade
 {
     public Guid SimuladoId { get; set; }
     public Guid UsuarioId { get; set; }
@@ -8,5 +8,6 @@ public class SessaoSimulado :  Entidade
     public DateTime? DataFim { get; set; }
     public double Pontuacao { get; set; }
     public Simulado Simulado { get; set; }
+    public Usuario Usuario { get; set; }
     public IEnumerable<RespostaUsuario> RespostasUsuario { get; set; }
 }

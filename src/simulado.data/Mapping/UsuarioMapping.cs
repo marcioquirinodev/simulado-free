@@ -15,7 +15,7 @@ public class UsuarioMapping : IEntityTypeConfiguration<Usuario>
         builder.Property(x => x.DataCadastro).IsRequired();
 
         // Relacionamentos (Restrict)
-        builder.HasOne<Usuario, NivelEscolaridade>(x => x.NivelEscolaridade)
+        builder.HasOne(x => x.NivelEscolaridade)
                .WithMany(n => n.Usuarios)
                .HasForeignKey(x => x.NivelEscolaridadeId)
                .OnDelete(DeleteBehavior.Restrict);

@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\simulado.data\simulado.data.csproj" />
+    <ProjectReference Include="..\simulado.shared\simulado.shared.csproj" />
+  </ItemGroup>
+
 </Project>
