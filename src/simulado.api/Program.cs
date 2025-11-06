@@ -7,6 +7,7 @@ using Microsoft.OpenApi.Models;
 using pandora.app.Configuration;
 using simulado.data.Context;
 using simulado.busisness.Services;
+using simulado.shared.Entidades;
 using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -76,25 +77,96 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Seed roles on startup (Administrador, Aluno)
+// Seed roles, NivelEscolaridade e usuário administrador no startup
 using (var scope = app.Services.CreateScope())
 {
     var serviceProvider = scope.ServiceProvider;
-    RoleManager<IdentityRole<Guid>> roleManager = serviceProvider.GetRequiredService<RoleManager<Microsoft.AspNetCore.Identity.IdentityRole<Guid>>>();
-    var userManager = serviceProvider.GetService<UserManager<simulado.shared.Entidades.Usuario>>();
+    var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+    var userManager = serviceProvider.GetRequiredService<UserManager<Usuario>>();
+    var db = serviceProvider.GetRequiredService<ApplicationDbContext>();
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
 
+    // 1) Roles
     var rolesToEnsure = new[] { "Administrador", "Aluno" };
     foreach (var roleName in rolesToEnsure)
     {
         var exists = await roleManager.RoleExistsAsync(roleName);
         if (!exists)
         {
-            await roleManager.CreateAsync(new Microsoft.AspNetCore.Identity.IdentityRole<Guid>(roleName));
+            await roleManager.CreateAsync(new IdentityRole<Guid>(roleName));
         }
     }
-    // optional: create initial admin user if none exists (skip if you prefer manual creation)
-    // var adminEmail = builder.Configuration.GetValue<string>("Admin:Email");
-    // if (!string.IsNullOrWhiteSpace(adminEmail) && userManager != null) { ... }
+
+    // 2) NivelEscolaridade seed (idempotente)
+    if (!await db.Set<NivelEscolaridade>().AnyAsync())
+    {
+        var niveis = new[]
+        {
+            new NivelEscolaridade { Descricao = "Nível Fundamental" },
+            new NivelEscolaridade { Descricao = "Nível Médio" },
+            new NivelEscolaridade { Descricao = "Nível Superior" }
+        };
+
+        db.Set<NivelEscolaridade>().AddRange(niveis);
+        await db.SaveChangesAsync();
+    }
+
+    // 3) Criar usuário administrador padrão, se não existir
+    var adminEmail = "administrador@estacio.br";
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    if (adminUser == null)
+    {
+        // procura o NivelEscolaridade "Nível Superior"
+        var nivelSuperior = await db.Set<NivelEscolaridade>().FirstOrDefaultAsync(n => n.Descricao == "Nível Superior");
+        var nivelId = nivelSuperior?.Id ?? (await db.Set<NivelEscolaridade>().FirstOrDefaultAsync())?.Id ?? Guid.Empty;
+
+        var admin = new Usuario
+        {
+            UserName = "Admistrador",
+            Email = adminEmail,
+            EmailConfirmed = true,
+            NivelEscolaridadeId = nivelId,
+            DataCadastro = DateTime.UtcNow
+        };
+
+        // senha: preferencialmente leia de configuração. fallback temporário:
+        var adminPassword = configuration.GetValue<string>("Admin:Password") ?? "Admin@12345";
+
+        var createResult = await userManager.CreateAsync(admin, adminPassword);
+        if (createResult.Succeeded)
+        {
+            await userManager.AddToRoleAsync(admin, "Administrador");
+        }
+        else
+        {
+            // opcional: registrar erros em log
+            var logger = serviceProvider.GetService<ILoggerFactory>()?.CreateLogger("Seed");
+            logger?.LogWarning("Não foi possível criar usuário administrador: {Errors}", string.Join(", ", createResult.Errors.Select(e => e.Description)));
+        }
+    }
+    else
+    {
+        // se usuário existe, garante que tem a role Administrador e EmailConfirmed
+        if (!await userManager.IsInRoleAsync(adminUser, "Administrador"))
+            await userManager.AddToRoleAsync(adminUser, "Administrador");
+
+        if (!adminUser.EmailConfirmed)
+        {
+            adminUser.EmailConfirmed = true;
+            await userManager.UpdateAsync(adminUser);
+        }
+
+        // garante NivelEscolaridadeId se estiver vazio
+        if (adminUser.NivelEscolaridadeId == Guid.Empty)
+        {
+            var nivelSuperior = await db.Set<NivelEscolaridade>().FirstOrDefaultAsync(n => n.Descricao == "Nível Superior");
+            if (nivelSuperior != null)
+            {
+                adminUser.NivelEscolaridadeId = nivelSuperior.Id;
+                await userManager.UpdateAsync(adminUser);
+            }
+        }
+    }
 }
 
 // pipeline
