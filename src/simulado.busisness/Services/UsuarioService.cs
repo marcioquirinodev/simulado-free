@@ -1,5 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using simulado.shared.Entidades;
 using simulado.shared.Models;
 
@@ -32,19 +35,29 @@ public class UsuarioService : IUsuarioService
         var result = await _userManager.CreateAsync(user, vm.Password);
         if (!result.Succeeded) return result;
 
+        // Garantir roles padrão existem e atribuir "Aluno" automaticamente
+        var defaultRole = "Aluno";
+        if (!await _roleManager.RoleExistsAsync(defaultRole))
+        {
+            await _roleManager.CreateAsync(new IdentityRole<Guid>(defaultRole));
+        }
+
+        // Sempre adicionar Aluno ao novo usuário (se vm.Roles vier com roles, também adiciona as delas)
+        var rolesToAdd = new List<string> { defaultRole };
         if (vm.Roles != null && vm.Roles.Any())
         {
+            // cria qualquer role adicional necessária
             foreach (var role in vm.Roles.Distinct())
             {
                 if (!await _roleManager.RoleExistsAsync(role))
                 {
                     await _roleManager.CreateAsync(new IdentityRole<Guid>(role));
                 }
+                rolesToAdd.Add(role);
             }
-
-            result = await _userManager.AddToRolesAsync(user, vm.Roles.Distinct());
         }
 
+        result = await _userManager.AddToRolesAsync(user, rolesToAdd.Distinct());
         return result;
     }
 
@@ -96,6 +109,6 @@ public class UsuarioService : IUsuarioService
 
     public async Task<IEnumerable<Usuario>> GetAllAsync()
     {
-        return await _userManager.Users.ToListAsync();
+        return _userManager.Users.ToList();
     }
 }

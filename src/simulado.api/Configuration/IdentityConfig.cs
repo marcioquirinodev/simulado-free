@@ -8,6 +8,7 @@ public static class IdentityConfig
 {
     public static IServiceCollection AddCustomIdentity(this IServiceCollection services)
     {
+        // Use IdentityRole<Guid> to match IdentityDbContext<Usuario, IdentityRole<Guid>, Guid>
         services.AddIdentity<Usuario, IdentityRole<Guid>>(options =>
         {
             options.SignIn.RequireConfirmedAccount = true;
@@ -22,7 +23,9 @@ public static class IdentityConfig
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
 
             options.User.RequireUniqueEmail = true;
-        }).AddEntityFrameworkStores<ApplicationDbContext>().AddDefaultTokenProviders();
+        })
+        .AddEntityFrameworkStores<ApplicationDbContext>()
+        .AddDefaultTokenProviders();
 
         return services;
     }
